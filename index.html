@@ -28,38 +28,40 @@
       </div>
 
       <div id="game-screen" class="hidden">
-        <h2>Quid</h2>
-        <p class="subtitle">
-          The secret word is the <span id="secret-word-rank"></span>th most
-          common.
-        </p>
-
-        <form id="guess-form">
-          <input
-            type="text"
-            id="guess-input"
-            placeholder="Enter your guess..."
-          />
-          <button type="submit">Guess</button>
-          <button type="button" id="restart-btn" class="icon-btn">
-            <i class="iconoir-refresh-double"></i>
-          </button>
-        </form>
-
-        <div id="latest-guess-container" class="info-card">
-          <p id="hint-text" style="color: var(--color-text-muted)">
-            Enter a word to begin.
+        <div id="game-screen-top">
+          <h2>Quid</h2>
+          <p class="subtitle">
+            The secret word is the <span id="secret-word-rank"></span>th most
+            common.
           </p>
-          <div id="latest-guess-info" class="hidden">
-            <p id="latest-word"></p>
-            <div>
+
+          <form id="guess-form">
+            <input
+              type="text"
+              id="guess-input"
+              placeholder="Guess..."
+              autocomplete="off"
+            />
+            <button type="button" id="restart-btn" class="icon-btn">
+              <i class="iconoir-refresh-double"></i>
+            </button>
+          </form>
+
+          <div id="latest-guess-container" class="info-card">
+            <p id="hint-text" style="color: var(--color-text-muted)">
+              Enter a word to begin.
+            </p>
+            <div id="latest-guess-info" class="hidden">
+              <p id="latest-word"></p>
               <div>
-                <p class="label">Similarity</p>
-                <p class="value" id="latest-similarity"></p>
-              </div>
-              <div>
-                <p class="label">Rank</p>
-                <p class="value guess-rank" id="latest-rank"></p>
+                <div>
+                  <p class="label">Similarity</p>
+                  <p class="value" id="latest-similarity"></p>
+                </div>
+                <div>
+                  <p class="label">Rank</p>
+                  <p class="value guess-rank" id="latest-rank"></p>
+                </div>
               </div>
             </div>
           </div>
@@ -67,7 +69,6 @@
 
         <div id="main-content">
           <div class="content-card">
-            <h2>Your Guesses</h2>
             <div id="guess-history-header">
               <span>Word</span>
               <span class="text-right">Similarity</span>
@@ -76,6 +77,8 @@
             <ul id="guess-history" class="hide-scrollbar"></ul>
           </div>
         </div>
+
+        <div id="virtual-keyboard" class="hidden"></div>
       </div>
 
       <div id="win-screen" class="hidden text-center">

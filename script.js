@@ -1,4 +1,5 @@
 import { get, set, clear } from "./idb-keyval.js";
+import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
 const GLOVE_FILE_PATH = "./glove.6B.50d.txt.quantized.json";
 const TOP_N_FOR_SECRET_WORD = 20000;
 
@@ -15,6 +16,8 @@ const appState = {
   wordSimilarities: [],
   top1000Indices: new Set(),
   isLoading: true,
+  currentGuess: "",
+  isMobile: false,
 };
 
 const loadingScreen = document.getElementById("loading-screen");
@@ -37,6 +40,7 @@ const winGuessesEl = document.getElementById("win-guesses");
 const playAgainBtn = document.getElementById("play-again-btn");
 const mainContent = document.getElementById("main-content");
 const restartBtn = document.getElementById("restart-btn");
+const virtualKeyboard = document.getElementById("virtual-keyboard");
 
 async function saveGameState() {
   const stateToSave = {
@@ -59,11 +63,83 @@ async function loadGameState() {
 }
 
 async function restartGame() {
+  triggerHapticError()
   await clear();
   resetUI();
   await initGame(true);
 }
 
+const KEYBOARD_LAYOUT = [
+  "q w e r t y u i o p backspace",
+  "a s d f g h j k l",
+  "z x c v b n m enter",
+];
+function createKeyboard() {
+  virtualKeyboard.innerHTML = "";
+  KEYBOARD_LAYOUT.forEach((row) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "keyboard-row";
+    row.split(" ").forEach((key) => {
+      const keyEl = document.createElement("button");
+      keyEl.className = "key";
+      keyEl.dataset.key = key;
+      if (key === "enter") {
+        keyEl.innerHTML = '<i class="iconoir-upload"></i>';
+        keyEl.classList.add("special-key");
+      } else if (key === "backspace") {
+        keyEl.innerHTML = '<i class="iconoir-transition-left"></i>';
+        keyEl.classList.add("special-key");
+      } else {
+        keyEl.textContent = key;
+      }
+      rowEl.appendChild(keyEl);
+    });
+    virtualKeyboard.appendChild(rowEl);
+  });
+}
+function updateGuessDisplay() {
+  guessInput.value = appState.currentGuess;
+}
+function handleKeyPress(key) {
+  if (appState.isLoading) return;
+  if (key === "enter") {
+    if (appState.currentGuess.length > 0) {
+      guessForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+  } else if (key === "backspace") {
+    appState.currentGuess = appState.currentGuess.slice(0, -1);
+  } else if (key.match(/^[a-z]$/) && appState.currentGuess.length < 20) {
+    appState.currentGuess += key;
+  }
+  updateGuessDisplay();
+}
+function handlePhysicalKeyDown(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const key = e.key.toLowerCase();
+  if (key.match(/^[a-z]$/) || key === "enter" || key === "backspace") {
+    e.preventDefault();
+    handleKeyPress(key);
+  }
+}
+function handleVirtualKeyboardClick(e) {
+  triggerHaptic()
+  const keyEl = e.target.closest(".key");
+  if (keyEl) {
+    handleKeyPress(keyEl.dataset.key);
+  }
+}
+function setupInputMode() {
+  appState.isMobile = window.matchMedia(
+    "(max-width: 500px) and (orientation: portrait)",
+  ).matches;
+  if (appState.isMobile) {
+    guessInput.readOnly = true;
+    virtualKeyboard.classList.remove("hidden");
+  } else {
+    guessInput.readOnly = false;
+    virtualKeyboard.classList.add("hidden");
+  }
+}
 const dequantizeValue = (qVal) => {
   const { minVal, maxVal } = appState;
   const scaled = (qVal + 127) / 254.0;
@@ -82,12 +158,12 @@ const cosineSimilarity = (vecA, vecB) => {
   if (magA === 0 || magB === 0) return 0;
   return dotProduct(vecA, vecB) / (magA * magB);
 };
-
 async function initGame(forceNew = false) {
+  initHaptic()
   resetUI();
+  setupInputMode();
   mainContent.classList.add("md:grid-cols-1");
   await loadData();
-
   if (!forceNew && (await loadGameState())) {
     const secretWordIndex = appState.wordMap.get(appState.secretWord);
     appState.secretVector = dequantizeVector(appState.vectors[secretWordIndex]);
@@ -105,10 +181,9 @@ async function initGame(forceNew = false) {
     appState.isLoading = false;
     loadingScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
-    guessInput.focus();
+    if (!appState.isMobile) guessInput.focus();
     return;
   }
-
   const CHUNK_SIZE = 1000;
   loadingStatus.textContent = "Dequantizing word vectors...";
   progressBar.style.width = `0%`;
@@ -154,15 +229,12 @@ async function initGame(forceNew = false) {
   });
   progressBar.style.width = `100%`;
   secretWordRankEl.textContent = secretWordIndex + 1; // Use frequency rank
-
   await saveGameState();
-
   appState.isLoading = false;
   loadingScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
-  guessInput.focus();
+  if (!appState.isMobile) guessInput.focus();
 }
-
 async function loadData() {
   try {
     const response = await fetch(GLOVE_FILE_PATH);
@@ -201,11 +273,11 @@ async function loadData() {
     console.error(error);
   }
 }
-
 function handleGuess(e) {
   e.preventDefault();
-  const word = guessInput.value.trim().toLowerCase();
-  guessInput.value = "";
+  const word = appState.currentGuess.trim().toLowerCase();
+  appState.currentGuess = "";
+  updateGuessDisplay();
   if (!word || appState.isLoading) return;
   if (!appState.wordMap.has(word)) {
     showHint("Word not in dictionary.", "error");
@@ -227,14 +299,12 @@ function handleGuess(e) {
     handleWin();
   }
 }
-
 function handleWin() {
   gameScreen.classList.add("hidden");
   winScreen.classList.remove("hidden");
   winWordEl.textContent = appState.secretWord;
   winGuessesEl.textContent = appState.guesses.length;
 }
-
 function resetUI() {
   Object.assign(appState, {
     guesses: [],
@@ -242,7 +312,9 @@ function resetUI() {
     secretVector: null,
     top1000Indices: new Set(),
     wordSimilarities: [],
+    currentGuess: "",
   });
+  updateGuessDisplay();
   loadingScreen.classList.remove("hidden");
   gameScreen.classList.add("hidden");
   winScreen.classList.add("hidden");
@@ -253,7 +325,6 @@ function resetUI() {
   guessHistory.innerHTML = "";
   guessInput.value = "";
 }
-
 function updateLatestGuess({ word, similarity, rank }) {
   hintText.classList.add("hidden");
   latestGuessInfo.classList.remove("hidden");
@@ -327,4 +398,10 @@ function showHint(message, type = "info") {
 guessForm.addEventListener("submit", handleGuess);
 playAgainBtn.addEventListener("click", () => initGame(true));
 restartBtn.addEventListener("click", restartGame);
-document.addEventListener("DOMContentLoaded", () => initGame());
+document.addEventListener("DOMContentLoaded", () => {
+  createKeyboard();
+  initGame();
+});
+document.addEventListener("keydown", handlePhysicalKeyDown);
+virtualKeyboard.addEventListener("click", handleVirtualKeyboardClick);
+window.addEventListener("resize", setupInputMode);
