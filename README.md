@@ -1,4 +1,5 @@
-# <img src="media/icon.png" alt="Quid Icon" width="32" height="32"> Quid - A Semantic Word Game
+# <img src="media/icon.png" alt="Quid Icon" width="192" height="192"> Quid - A Semantic Word Game
+# 
 
 Quid is a word-guessing game where you must find a secret word based on its semantic meaning. Unlike traditional word games that rely on spelling, Quid uses word embeddings to measure how close your guesses are in meaning to the target word.
 
