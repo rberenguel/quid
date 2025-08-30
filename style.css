@@ -437,8 +437,8 @@ body {
   }
 
   #guess-history {
-    height: auto;
     flex-grow: 1;
+    overflow-y: auto;
   }
 
   #guess-input {
