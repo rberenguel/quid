@@ -25,6 +25,7 @@ body {
   margin: 0;
   padding: 1rem;
   padding-top: 0;
+  touch-action: manipulation;
 }
 #app {
   width: 100%;
@@ -77,7 +78,7 @@ body {
 #guess-form {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.0rem;
+  margin-bottom: 1rem;
   font-size: 75%;
 }
 #guess-input {
@@ -312,6 +313,76 @@ body {
   font-size: 1.5rem;
   background-color: rebeccapurple;
 }
+
+/* Modal Styles */
+#restart-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#restart-modal:not(.hidden) {
+  display: flex;
+}
+.modal-backdrop {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+.modal-content {
+  position: relative;
+  z-index: 101;
+  background-color: var(--color-surface-2);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+}
+.modal-content p {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+}
+.modal-subtitle {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem !important;
+  font-size: 0.875rem !important;
+}
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+.modal-actions button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.modal-btn-primary {
+  background-color: #ef4444; /* red-500 */
+  color: white;
+}
+.modal-btn-primary:hover {
+  background-color: #dc2626; /* red-600 */
+}
+.modal-btn-secondary {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+.modal-btn-secondary:hover {
+  background-color: #4b5563; /* gray-600 */
+}
+
 @media (min-width: 768px) {
   #main-content.grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -347,7 +418,7 @@ body {
   #game-screen-top {
     flex-shrink: 0;
   }
-  
+
   #main-content {
     flex-grow: 1;
     min-height: 0; /* Critical for flex + overflow */
@@ -360,16 +431,16 @@ body {
     flex-direction: column;
     padding: 0.5rem 0;
   }
-  
+
   .content-card h2 {
     margin-bottom: 0.5rem;
   }
-  
+
   #guess-history {
     height: auto;
     flex-grow: 1;
   }
-  
+
   #guess-input {
     text-align: center;
     font-size: 0.75rem;
@@ -382,6 +453,6 @@ body {
     margin-top: 0;
   }
   #latest-guess-container.info-card {
-  margin-bottom: 1rem;
-}
+    margin-bottom: 1rem;
+  }
 }

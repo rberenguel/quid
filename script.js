@@ -41,6 +41,9 @@ const playAgainBtn = document.getElementById("play-again-btn");
 const mainContent = document.getElementById("main-content");
 const restartBtn = document.getElementById("restart-btn");
 const virtualKeyboard = document.getElementById("virtual-keyboard");
+const restartModal = document.getElementById("restart-modal");
+const modalConfirmBtn = document.getElementById("modal-confirm-btn");
+const modalCancelBtn = document.getElementById("modal-cancel-btn");
 
 async function saveGameState() {
   const stateToSave = {
@@ -63,7 +66,7 @@ async function loadGameState() {
 }
 
 async function restartGame() {
-  triggerHapticError()
+  triggerHapticError();
   await clear();
   resetUI();
   await initGame(true);
@@ -122,7 +125,7 @@ function handlePhysicalKeyDown(e) {
   }
 }
 function handleVirtualKeyboardClick(e) {
-  triggerHaptic()
+  triggerHaptic();
   const keyEl = e.target.closest(".key");
   if (keyEl) {
     handleKeyPress(keyEl.dataset.key);
@@ -140,6 +143,16 @@ function setupInputMode() {
     virtualKeyboard.classList.add("hidden");
   }
 }
+
+function showRestartModal() {
+  triggerHapticError();
+  restartModal.classList.remove("hidden");
+}
+
+function hideRestartModal() {
+  restartModal.classList.add("hidden");
+}
+
 const dequantizeValue = (qVal) => {
   const { minVal, maxVal } = appState;
   const scaled = (qVal + 127) / 254.0;
@@ -159,7 +172,7 @@ const cosineSimilarity = (vecA, vecB) => {
   return dotProduct(vecA, vecB) / (magA * magB);
 };
 async function initGame(forceNew = false) {
-  initHaptic()
+  initHaptic();
   resetUI();
   setupInputMode();
   mainContent.classList.add("md:grid-cols-1");
@@ -397,7 +410,16 @@ function showHint(message, type = "info") {
 
 guessForm.addEventListener("submit", handleGuess);
 playAgainBtn.addEventListener("click", () => initGame(true));
-restartBtn.addEventListener("click", restartGame);
+restartBtn.addEventListener("click", showRestartModal);
+modalConfirmBtn.addEventListener("click", () => {
+  hideRestartModal();
+  restartGame();
+});
+modalCancelBtn.addEventListener("click", hideRestartModal);
+restartModal
+  .querySelector(".modal-backdrop")
+  .addEventListener("click", hideRestartModal);
+
 document.addEventListener("DOMContentLoaded", () => {
   createKeyboard();
   initGame();

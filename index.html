@@ -92,6 +92,22 @@
         </p>
         <button id="play-again-btn">Play Again</button>
       </div>
+
+      <div id="restart-modal" class="hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+          <p>Are you sure you want to restart?</p>
+          <p class="modal-subtitle">You will lose all your current progress.</p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn" class="modal-btn-secondary">
+              Cancel
+            </button>
+            <button id="modal-confirm-btn" class="modal-btn-primary">
+              Restart
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="script.js" type="module"></script>
