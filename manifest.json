@@ -1,0 +1,23 @@
+{
+  "name": "Quid",
+  "short_name": "Quid",
+  "author": "Ruben Berenguel",
+  "version": "0.1.0",
+  "description": "Find the hidden word.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#01171c",
+  "theme_color": "#01171c",
+  "icons": [
+    {
+      "src": "./media/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./media/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

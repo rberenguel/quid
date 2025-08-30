@@ -1,406 +1,111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semantic Proximity</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .guess-rank {
-            font-variant-numeric: tabular-nums;
-        }
-        /* Simple transition for list items */
-        .guess-item {
-            transition: all 0.3s ease-in-out;
-        }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-</head>
-<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Quid</title>
+    <link rel="stylesheet" href="./fonts/inter.css" />
+    <link rel="stylesheet" href="./fonts/monoid.css" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./media/favicon.ico" type="image/x-icon" />
+  </head>
+  <body
+    class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4"
+  >
+    <div id="app">
+      <div id="loading-screen" class="text-center">
+        <h1>Quid</h1>
+        <p>Loading word vectors...</p>
+        <div class="progress-bar-container">
+          <div id="progress-bar" style="width: 0%"></div>
+        </div>
+        <p id="loading-status">Initializing...</p>
+      </div>
 
-    <div id="app" class="w-full max-w-2xl mx-auto">
+      <div id="game-screen" class="hidden">
+        <h2>Quid</h2>
+        <p class="subtitle">
+          The secret word is the <span id="secret-word-rank"></span>th most
+          common.
+        </p>
 
-        <!-- Loading Screen -->
-        <div id="loading-screen" class="text-center">
-            <h1 class="text-4xl font-bold text-cyan-400 mb-4">Semantic Proximity</h1>
-            <p class="text-lg text-gray-400 mb-6">Loading word vectors...</p>
-            <div class="w-full bg-gray-700 rounded-full h-4 mb-4 overflow-hidden">
-                <div id="progress-bar" class="bg-cyan-500 h-4 rounded-full" style="width: 0%"></div>
+        <form id="guess-form">
+          <input
+            type="text"
+            id="guess-input"
+            placeholder="Enter your guess..."
+          />
+          <button type="submit">Guess</button>
+        </form>
+
+        <div id="latest-guess-container" class="info-card">
+          <p id="hint-text" style="color: var(--color-text-muted)">
+            Enter a word to begin.
+          </p>
+          <div id="latest-guess-info" class="hidden">
+            <p id="latest-word"></p>
+            <div>
+              <div>
+                <p class="label">Similarity</p>
+                <p class="value" id="latest-similarity"></p>
+              </div>
+              <div>
+                <p class="label">Rank</p>
+                <p class="value guess-rank" id="latest-rank"></p>
+              </div>
             </div>
-            <p id="loading-status" class="text-gray-500">Initializing...</p>
+          </div>
         </div>
 
-        <!-- Game Screen -->
-        <div id="game-screen" class="hidden">
-            <h1 class="text-4xl font-bold text-center text-cyan-400 mb-2">Find the Secret Word</h1>
-            <p class="text-center text-gray-400 mb-6">The secret word is ranked #<span id="secret-word-rank"></span> out of 50,000.</p>
-
-            <!-- Input Form -->
-            <form id="guess-form" class="flex gap-2 mb-6">
-                <input type="text" id="guess-input" placeholder="Enter your guess..." class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500">
-                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">Guess</button>
-            </form>
-
-             <!-- Latest Guess Info -->
-            <div id="latest-guess-container" class="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-center min-h-[110px] flex flex-col justify-center">
-                 <p id="hint-text" class="text-gray-500">Enter a word to begin.</p>
-                 <div id="latest-guess-info" class="hidden">
-                     <p class="text-2xl font-mono" id="latest-word"></p>
-                     <div class="flex justify-center items-center gap-6 mt-2">
-                        <div>
-                            <p class="text-sm text-gray-400">Similarity</p>
-                            <p class="text-xl font-bold" id="latest-similarity"></p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-400">Rank</p>
-                            <p class="text-xl font-bold guess-rank" id="latest-rank"></p>
-                        </div>
-                     </div>
-                 </div>
+        <div id="main-content">
+          <div class="content-card">
+            <h2>Your Guesses</h2>
+            <div id="guess-history-header">
+              <span>Word</span>
+              <span class="text-right">Similarity</span>
+              <span class="text-right">Rank</span>
             </div>
-
-            <!-- Guess History -->
-            <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                 <h2 class="text-xl font-bold mb-4 text-center">Your Guesses</h2>
-                 <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 text-sm text-gray-400 mb-2 px-4">
-                     <span>Word</span>
-                     <span class="text-right">Similarity</span>
-                     <span class="text-right">Rank</span>
-                 </div>
-                 <ul id="guess-history" class="space-y-1 h-80 overflow-y-auto">
-                    <!-- Guesses will be populated here -->
-                 </ul>
-            </div>
+            <ul id="guess-history" class="hide-scrollbar"></ul>
+          </div>
         </div>
-        
-        <!-- Win Screen -->
-        <div id="win-screen" class="hidden text-center">
-            <h1 class="text-5xl font-bold text-green-400 mb-4">You found it!</h1>
-            <p class="text-2xl mb-2">The secret word was:</p>
-            <p id="win-word" class="text-4xl font-mono bg-gray-800 inline-block px-4 py-2 rounded-lg text-cyan-400 mb-6"></p>
-            <p class="text-lg text-gray-400 mb-6">You found it in <span id="win-guesses" class="font-bold text-white"></span> guesses.</p>
-            <button id="play-again-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">Play Again</button>
-        </div>
+      </div>
 
+      <div id="win-screen" class="hidden text-center">
+        <h1>You found it!</h1>
+        <p>The secret word was:</p>
+        <p id="win-word" class="font-mono"></p>
+        <p>
+          You found it in
+          <span id="win-guesses" style="font-weight: 700; color: white"></span>
+          guesses.
+        </p>
+        <button id="play-again-btn">Play Again</button>
+      </div>
     </div>
 
+    <script src="script.js"></script>
     <script>
-    const GLOVE_FILE_PATH = './glove.6B.50d.quantized.json';
-    const TOP_N_FOR_SECRET_WORD = 20000; // Pick secret word from top 20k most common
-
-    const appState = {
-        words: [],
-        vectors: [],
-        wordMap: new Map(),
-        secretWord: null,
-        secretVector: null,
-        minVal: 0,
-        maxVal: 0,
-        dimension: 0,
-        guesses: [],
-        wordSimilarities: [],
-        top1000Indices: new Set(),
-        isLoading: true,
-    };
-
-    // DOM Elements
-    const loadingScreen = document.getElementById('loading-screen');
-    const gameScreen = document.getElementById('game-screen');
-    const winScreen = document.getElementById('win-screen');
-    const progressBar = document.getElementById('progress-bar');
-    const loadingStatus = document.getElementById('loading-status');
-    const guessForm = document.getElementById('guess-form');
-    const guessInput = document.getElementById('guess-input');
-    const latestGuessContainer = document.getElementById('latest-guess-container');
-    const hintText = document.getElementById('hint-text');
-    const latestGuessInfo = document.getElementById('latest-guess-info');
-    const latestWord = document.getElementById('latest-word');
-    const latestSimilarity = document.getElementById('latest-similarity');
-    const latestRank = document.getElementById('latest-rank');
-    const guessHistory = document.getElementById('guess-history');
-    const secretWordRankEl = document.getElementById('secret-word-rank');
-    const winWordEl = document.getElementById('win-word');
-    const winGuessesEl = document.getElementById('win-guesses');
-    const playAgainBtn = document.getElementById('play-again-btn');
-
-    // --- Vector Math ---
-    const dequantizeValue = (qVal) => {
-        const { minVal, maxVal } = appState;
-        // Scale from [-127, 127] to [0, 254] then to [0, 1]
-        const scaled = (qVal + 127) / 254.0;
-        // Scale to original range [minVal, maxVal]
-        return scaled * (maxVal - minVal) + minVal;
-    };
-
-    const dequantizeVector = (quantizedVec) => {
-        return quantizedVec.map(dequantizeValue);
-    };
-
-    const dotProduct = (vecA, vecB) => {
-        let product = 0;
-        for (let i = 0; i < vecA.length; i++) {
-            product += vecA[i] * vecB[i];
-        }
-        return product;
-    };
-    
-    const magnitude = (vec) => {
-        return Math.sqrt(dotProduct(vec, vec));
-    };
-
-    const cosineSimilarity = (vecA, vecB) => {
-        const magA = magnitude(vecA);
-        const magB = magnitude(vecB);
-        if (magA === 0 || magB === 0) return 0;
-        return dotProduct(vecA, vecB) / (magA * magB);
-    };
-
-
-    // --- Game Logic ---
-    async function initGame() {
-        resetUI();
-        await loadData();
-        
-        loadingStatus.textContent = 'Choosing a secret word...';
-        
-        // 1. Pick a secret word
-        const secretWordIndex = Math.floor(Math.random() * TOP_N_FOR_SECRET_WORD);
-        appState.secretWord = appState.words[secretWordIndex];
-        appState.secretVector = dequantizeVector(appState.vectors[secretWordIndex]);
-
-        // 2. Pre-calculate all similarities and ranks
-        loadingStatus.textContent = 'Calculating similarities...';
-        await new Promise(resolve => setTimeout(resolve, 10)); // Allow UI to update
-
-        const allSimilarities = appState.vectors.map((vec, i) => {
-            const dequantized = dequantizeVector(vec);
-            return {
-                index: i,
-                similarity: cosineSimilarity(appState.secretVector, dequantized)
-            };
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("./sw.js").then(
+            function (registration) {
+              console.log(
+                "ServiceWorker registration successful with scope: ",
+                registration.scope,
+              );
+            },
+            function (err) {
+              console.log("ServiceWorker registration failed: ", err);
+            },
+          );
         });
-
-        // 3. Sort by similarity to get ranks
-        allSimilarities.sort((a, b) => b.similarity - a.similarity);
-        
-        appState.wordSimilarities = new Array(appState.words.length);
-        allSimilarities.forEach((item, rank) => {
-            appState.wordSimilarities[item.index] = {
-                similarity: item.similarity,
-                rank: rank + 1
-            };
-            if (rank < 1000) {
-                 appState.top1000Indices.add(item.index);
-            }
-        });
-        
-        secretWordRankEl.textContent = appState.wordSimilarities[secretWordIndex].rank;
-
-        // 4. Finalize setup
-        appState.isLoading = false;
-        loadingScreen.classList.add('hidden');
-        gameScreen.classList.remove('hidden');
-        guessInput.focus();
-    }
-
-    async function loadData() {
-        try {
-            const response = await fetch(GLOVE_FILE_PATH);
-            const reader = response.body.getReader();
-            const contentLength = +response.headers.get('Content-Length');
-            
-            let receivedLength = 0;
-            let chunks = [];
-            while(true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                chunks.push(value);
-                receivedLength += value.length;
-                const progress = (receivedLength / contentLength) * 100;
-                progressBar.style.width = `${progress}%`;
-                loadingStatus.textContent = `Downloading... ${Math.round(progress)}%`;
-            }
-
-            let chunksAll = new Uint8Array(receivedLength);
-            let position = 0;
-            for(let chunk of chunks) {
-                chunksAll.set(chunk, position);
-                position += chunk.length;
-            }
-
-            const result = new TextDecoder("utf-8").decode(chunksAll);
-            const data = JSON.parse(result);
-            
-            appState.words = data.words;
-            appState.vectors = data.vectors;
-            appState.minVal = data.min;
-            appState.maxVal = data.max;
-            appState.dimension = data.dimension;
-            
-            appState.words.forEach((word, index) => {
-                appState.wordMap.set(word, index);
-            });
-
-        } catch (error) {
-            loadingStatus.textContent = "Error loading data. Please check the file path and try again.";
-            console.error(error);
-        }
-    }
-
-    function handleGuess(e) {
-        e.preventDefault();
-        const word = guessInput.value.trim().toLowerCase();
-        guessInput.value = '';
-
-        if (!word || appState.isLoading) return;
-        
-        if (!appState.wordMap.has(word)) {
-            showHint("Word not in dictionary.", "error");
-            return;
-        }
-
-        if (appState.guesses.some(g => g.word === word)) {
-            showHint("You already guessed that word.", "info");
-            return;
-        }
-
-        const wordIndex = appState.wordMap.get(word);
-        const { similarity, rank } = appState.wordSimilarities[wordIndex];
-        
-        const guessData = { word, similarity, rank };
-        appState.guesses.push(guessData);
-        appState.guesses.sort((a, b) => b.similarity - a.similarity);
-
-        updateLatestGuess(guessData);
-        renderGuessHistory();
-
-        if (word === appState.secretWord) {
-            handleWin();
-        }
-    }
-    
-    function handleWin() {
-        gameScreen.classList.add('hidden');
-        winScreen.classList.remove('hidden');
-        winWordEl.textContent = appState.secretWord;
-        winGuessesEl.textContent = appState.guesses.length;
-    }
-
-    // --- UI Update Functions ---
-    
-    function resetUI() {
-        appState.guesses = [];
-        appState.secretWord = null;
-        appState.secretVector = null;
-        appState.top1000Indices.clear();
-        appState.wordSimilarities = [];
-        
-        loadingScreen.classList.remove('hidden');
-        gameScreen.classList.add('hidden');
-        winScreen.classList.add('hidden');
-        
-        progressBar.style.width = '0%';
-        loadingStatus.textContent = 'Initializing...';
-        hintText.textContent = "Enter a word to begin.";
-        latestGuessInfo.classList.add('hidden');
-        guessHistory.innerHTML = '';
-        guessInput.value = '';
-    }
-
-    function updateLatestGuess({ word, similarity, rank }) {
-        hintText.classList.add('hidden');
-        latestGuessInfo.classList.remove('hidden');
-
-        latestWord.textContent = word;
-        latestSimilarity.textContent = similarity.toFixed(4);
-        latestRank.textContent = rank;
-        
-        const color = getHotnessColor(similarity);
-        latestSimilarity.style.color = color;
-        latestRank.style.color = color;
-        
-        const wordIndex = appState.wordMap.get(word);
-        if(appState.top1000Indices.has(wordIndex) && word !== appState.secretWord){
-             latestRank.textContent += " (Top 1000!)";
-        }
-    }
-    
-    function renderGuessHistory() {
-        guessHistory.innerHTML = ''; // Clear previous list
-        appState.guesses.forEach(guess => {
-            const li = document.createElement('li');
-            li.className = 'guess-item grid grid-cols-[1fr_auto_auto] items-center gap-x-4 px-4 py-2 rounded-md';
-            
-            const color = getHotnessColor(guess.similarity);
-            
-            const wordSpan = document.createElement('span');
-            wordSpan.textContent = guess.word;
-            
-            const similaritySpan = document.createElement('span');
-            similaritySpan.className = 'font-mono text-right';
-            similaritySpan.textContent = (guess.similarity * 100).toFixed(2);
-            similaritySpan.style.color = color;
-            
-            const rankSpan = document.createElement('span');
-            rankSpan.className = 'guess-rank text-right';
-            rankSpan.textContent = guess.rank;
-            rankSpan.style.color = color;
-
-            const wordIndex = appState.wordMap.get(guess.word);
-            if(appState.top1000Indices.has(wordIndex) && guess.word !== appState.secretWord){
-                li.classList.add('bg-cyan-900/40');
-            }
-            
-            li.appendChild(wordSpan);
-            li.appendChild(similaritySpan);
-            li.appendChild(rankSpan);
-            guessHistory.appendChild(li);
-        });
-    }
-
-    function getHotnessColor(similarity) {
-        if (similarity < 0.1) return '#60a5fa'; // blue-400
-        if (similarity < 0.2) return '#38bdf8'; // lightBlue-400
-        if (similarity < 0.3) return '#2dd4bf'; // teal-400
-        if (similarity < 0.4) return '#34d399'; // emerald-400
-        if (similarity < 0.5) return '#a3e635'; // lime-400
-        if (similarity < 0.6) return '#facc15'; // yellow-400
-        if (similarity < 0.7) return '#fb923c'; // orange-400
-        if (similarity < 0.8) return '#f87171'; // red-400
-        return '#ef4444'; // red-500
-    }
-    
-    function showHint(message, type = 'info') {
-        hintText.textContent = message;
-        hintText.classList.remove('hidden');
-        latestGuessInfo.classList.add('hidden');
-        if(type === 'error') {
-            hintText.style.color = '#f87171'; // red-400
-        } else {
-            hintText.style.color = '#9ca3af'; // gray-400
-        }
-        setTimeout(() => {
-            if (appState.guesses.length === 0) {
-                 hintText.textContent = "Enter a word to begin.";
-            } else {
-                 hintText.classList.add('hidden');
-                 latestGuessInfo.classList.remove('hidden');
-            }
-        }, 2000);
-    }
-    
-    // --- Event Listeners ---
-    guessForm.addEventListener('submit', handleGuess);
-    playAgainBtn.addEventListener('click', initGame);
-
-    // --- Start ---
-    document.addEventListener('DOMContentLoaded', initGame);
-
+      } else {
+        console.info("Service workers not available on this device");
+      }
     </script>
-</body>
+  </body>
 </html>
