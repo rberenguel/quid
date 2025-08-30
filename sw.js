@@ -1,4 +1,4 @@
-const CACHE_NAME = "quid-cache-v0.1.0";
+const CACHE_NAME = "quid-cache-v0.1.1";
 const CACHE_FILES = [
   "./",
   "./fonts/InterDisplay-Bold.woff2",
@@ -12,6 +12,7 @@ const CACHE_FILES = [
   "./media/favicon.ico",
   "./media/icon.png",
   "./script.js",
+  "./idb-keyval.js",
   "./style.css",
   "./glove.6B.50d.txt.quantized.json",
 ];

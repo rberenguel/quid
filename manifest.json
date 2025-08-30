@@ -2,7 +2,7 @@
   "name": "Quid",
   "short_name": "Quid",
   "author": "Ruben Berenguel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Find the hidden word.",
   "start_url": "./index.html",
   "display": "standalone",

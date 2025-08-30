@@ -1,3 +1,4 @@
+import { get, set, clear } from "./idb-keyval.js";
 const GLOVE_FILE_PATH = "./glove.6B.50d.txt.quantized.json";
 const TOP_N_FOR_SECRET_WORD = 20000;
 
@@ -35,6 +36,33 @@ const winWordEl = document.getElementById("win-word");
 const winGuessesEl = document.getElementById("win-guesses");
 const playAgainBtn = document.getElementById("play-again-btn");
 const mainContent = document.getElementById("main-content");
+const restartBtn = document.getElementById("restart-btn");
+
+async function saveGameState() {
+  const stateToSave = {
+    secretWord: appState.secretWord,
+    guesses: appState.guesses,
+    wordSimilarities: appState.wordSimilarities,
+  };
+  await set("gameState", stateToSave);
+}
+
+async function loadGameState() {
+  const savedState = await get("gameState");
+  if (savedState) {
+    appState.secretWord = savedState.secretWord;
+    appState.guesses = savedState.guesses;
+    appState.wordSimilarities = savedState.wordSimilarities;
+    return true;
+  }
+  return false;
+}
+
+async function restartGame() {
+  await clear();
+  resetUI();
+  await initGame(true);
+}
 
 const dequantizeValue = (qVal) => {
   const { minVal, maxVal } = appState;
@@ -55,10 +83,32 @@ const cosineSimilarity = (vecA, vecB) => {
   return dotProduct(vecA, vecB) / (magA * magB);
 };
 
-async function initGame() {
+async function initGame(forceNew = false) {
   resetUI();
   mainContent.classList.add("md:grid-cols-1");
   await loadData();
+
+  if (!forceNew && (await loadGameState())) {
+    const secretWordIndex = appState.wordMap.get(appState.secretWord);
+    appState.secretVector = dequantizeVector(appState.vectors[secretWordIndex]);
+    appState.wordSimilarities.forEach((item, index) => {
+      if (item.rank <= 1000) {
+        appState.top1000Indices.add(index);
+      }
+    });
+    secretWordRankEl.textContent =
+      appState.wordSimilarities[secretWordIndex].rank;
+    if (appState.guesses.length > 0) {
+      updateLatestGuess(appState.guesses[0]);
+    }
+    renderGuessHistory();
+    appState.isLoading = false;
+    loadingScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+    guessInput.focus();
+    return;
+  }
+
   const CHUNK_SIZE = 1000;
   loadingStatus.textContent = "Dequantizing word vectors...";
   progressBar.style.width = `0%`;
@@ -104,6 +154,8 @@ async function initGame() {
   });
   progressBar.style.width = `100%`;
   secretWordRankEl.textContent = secretWordIndex + 1; // Use frequency rank
+
+  await saveGameState();
 
   appState.isLoading = false;
   loadingScreen.classList.add("hidden");
@@ -170,6 +222,7 @@ function handleGuess(e) {
   appState.guesses.sort((a, b) => b.similarity - a.similarity);
   updateLatestGuess(guessData);
   renderGuessHistory();
+  saveGameState();
   if (word === appState.secretWord) {
     handleWin();
   }
@@ -272,5 +325,6 @@ function showHint(message, type = "info") {
 }
 
 guessForm.addEventListener("submit", handleGuess);
-playAgainBtn.addEventListener("click", initGame);
-document.addEventListener("DOMContentLoaded", initGame);
+playAgainBtn.addEventListener("click", () => initGame(true));
+restartBtn.addEventListener("click", restartGame);
+document.addEventListener("DOMContentLoaded", () => initGame());

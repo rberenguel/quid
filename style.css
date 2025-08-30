@@ -266,3 +266,23 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.icon-btn {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover {
+  background-color: var(--color-surface-2);
+  color: var(--color-text);
+}
+.icon-btn i {
+  font-size: 1.25rem;
+}

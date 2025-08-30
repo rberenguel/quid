@@ -9,6 +9,7 @@
     <title>Quid</title>
     <link rel="stylesheet" href="./fonts/inter.css" />
     <link rel="stylesheet" href="./fonts/monoid.css" />
+    <link rel="stylesheet" href="./fonts/iconoir/iconoir.css" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./media/favicon.ico" type="image/x-icon" />
@@ -40,6 +41,9 @@
             placeholder="Enter your guess..."
           />
           <button type="submit">Guess</button>
+          <button type="button" id="restart-btn" class="icon-btn">
+            <i class="iconoir-refresh-double"></i>
+          </button>
         </form>
 
         <div id="latest-guess-container" class="info-card">
@@ -87,7 +91,7 @@
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js" type="module"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
