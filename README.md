@@ -2,6 +2,8 @@
 
 Quid is a word-guessing game where you must find a secret word based on its semantic meaning. Unlike traditional word games that rely on spelling, Quid uses word embeddings to measure how close your guesses are in meaning to the target word.
 
+Yes, this is inspired by [_Semantle_](https://en.wikipedia.org/wiki/Semantle) and similar variants.
+
 The game challenges your intuition about word relationships. How "close" is _king_ to _queen_? What about _king_ to _throne_? Or _king_ to _power_? Put your vocabulary to the test and see if you can navigate the vector space to find the secret word.
 
 <img src="media/screenshot.png" alt="Quid Icon" width="400" >
