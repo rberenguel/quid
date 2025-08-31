@@ -44,6 +44,15 @@ body {
   color: var(--color-primary);
   margin-bottom: 1rem;
 }
+.loading-icon {
+  margin: 0 auto 1rem;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.8;
+  }
+}
 #loading-screen p {
   font-size: 1.125rem; /* text-lg */
   color: var(--color-text-muted);
@@ -81,6 +90,13 @@ body {
   text-align: center;
   color: var(--color-text-muted);
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+#language-flag {
+  font-size: 1.25rem;
 }
 #guess-form {
   display: flex;
@@ -357,16 +373,30 @@ body {
   margin-bottom: 1.5rem;
   font-size: 1.25rem;
 }
-#language-selection {
+.game-description {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  text-align: left;
+  border-left: 2px solid var(--color-border);
+  padding-left: 1rem;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
   margin-bottom: 1.5rem;
   text-align: left;
 }
-#language-selection label {
+#language-selection label,
+#difficulty-selection label {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
-#language-select {
+#language-select,
+#difficulty-select {
   width: 100%;
   padding: 0.75rem 1rem;
   background-color: var(--color-surface-1);
@@ -397,6 +427,18 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+.coffee-link-container {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+.coffee-link img {
+  height: 40px;
+  width: auto;
+  transition: transform 0.2s;
+}
+.coffee-link:hover img {
+  transform: scale(1.05);
 }
 .modal-btn-primary {
   background-color: var(--color-primary);

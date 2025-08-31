@@ -2,15 +2,22 @@ import { get, set, clear } from "./idb-keyval.js";
 import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
 
 const TOP_N_FOR_SECRET_WORD = 20000;
+const DIFFICULTY_LEVELS = {
+  easy: 1000,
+  medium: 10000,
+  normal: 20000,
+};
 
 const LANGUAGES = {
   ca: {
     name: "Catalan",
+    flag: "🇪🇸", // Note: No official Catalan flag emoji
     model: "./models/cc.ca.50.txt.quantized.json",
     replacements: [[/l·l/g, "ll"]],
   },
   de: {
     name: "German",
+    flag: "🇩🇪",
     model: "./models/cc.de.50.txt.quantized.json",
     replacements: [
       [/ä/g, "a"],
@@ -21,21 +28,25 @@ const LANGUAGES = {
   },
   en: {
     name: "English",
+    flag: "🇬🇧",
     model: "./models/cc.en.50.txt.quantized.json",
     replacements: [],
   },
   es: {
     name: "Spanish",
+    flag: "🇪🇸",
     model: "./models/cc.es.50.txt.quantized.json",
     replacements: [[/ñ/g, "n"]],
   },
   fr: {
     name: "French",
+    flag: "🇫🇷",
     model: "./models/cc.fr.50.txt.quantized.json",
     replacements: [[/ç/g, "c"]],
   },
   it: {
     name: "Italian",
+    flag: "🇮🇹",
     model: "./models/cc.it.50.txt.quantized.json",
     replacements: [],
   },
@@ -59,6 +70,7 @@ const appState = {
   currentGuess: "",
   isMobile: false,
   language: "ca",
+  difficulty: "normal",
 };
 
 const loadingScreen = document.getElementById("loading-screen");
@@ -77,6 +89,7 @@ const latestRank = document.getElementById("latest-rank");
 const guessHistory = document.getElementById("guess-history");
 const secretWordRankEl = document.getElementById("secret-word-rank");
 const languageNameEl = document.getElementById("language-name");
+const languageFlagEl = document.getElementById("language-flag");
 const winWordEl = document.getElementById("win-word");
 const winGuessesEl = document.getElementById("win-guesses");
 const playAgainBtn = document.getElementById("play-again-btn");
@@ -86,6 +99,7 @@ const virtualKeyboard = document.getElementById("virtual-keyboard");
 const settingsBtn = document.getElementById("settings-btn");
 const settingsModal = document.getElementById("settings-modal");
 const languageSelect = document.getElementById("language-select");
+const difficultySelect = document.getElementById("difficulty-select");
 
 function showSettingsModal() {
   settingsModal.classList.remove("hidden");
@@ -114,6 +128,7 @@ async function saveGameState() {
     wordSimilarities: appState.wordSimilarities,
     language: appState.language,
     secretWordRank: appState.secretWordRank,
+    difficulty: appState.difficulty,
   };
   await set("gameState", stateToSave);
 }
@@ -126,7 +141,9 @@ async function loadGameState() {
     appState.wordSimilarities = savedState.wordSimilarities;
     appState.language = savedState.language || "ca";
     appState.secretWordRank = savedState.secretWordRank;
+    appState.difficulty = savedState.difficulty || "normal";
     languageSelect.value = appState.language;
+    difficultySelect.value = appState.difficulty;
     return true;
   }
   return false;
@@ -235,19 +252,23 @@ async function initGame(forceNew = false) {
   setupInputMode();
   mainContent.classList.add("md:grid-cols-1");
 
-  // Determine language: saved state > default
+  // Determine language and difficulty from saved state or defaults
   const savedState = await get("gameState");
-  if (!forceNew && savedState && savedState.language) {
-    appState.language = savedState.language;
+  if (!forceNew && savedState) {
+    appState.language = savedState.language || "ca";
+    appState.difficulty = savedState.difficulty || "normal";
   }
   languageSelect.value = appState.language;
+  difficultySelect.value = appState.difficulty;
   languageNameEl.textContent = LANGUAGES[appState.language].name.toLowerCase();
+  languageFlagEl.textContent = LANGUAGES[appState.language].flag;
 
   await loadData(appState.language);
 
   if (!forceNew && (await loadGameState())) {
     try {
       const secretWordIndex = appState.wordMap.get(appState.secretWord);
+      if (secretWordIndex === undefined) throw new Error("Secret word not in map");
       appState.secretVector = dequantizeVector(
         appState.vectors[secretWordIndex],
       );
@@ -287,7 +308,8 @@ async function initGame(forceNew = false) {
   }
 
   loadingStatus.textContent = "Choosing a secret word...";
-  const secretWordIndex = Math.floor(Math.random() * TOP_N_FOR_SECRET_WORD);
+  const topN = DIFFICULTY_LEVELS[appState.difficulty];
+  const secretWordIndex = Math.floor(Math.random() * topN);
   appState.secretWord = appState.words[secretWordIndex];
   appState.secretVector = dequantizedVectors[secretWordIndex];
   appState.secretWordRank = secretWordIndex + 1;
@@ -428,6 +450,7 @@ function resetUI() {
     guesses: [],
     secretWord: null,
     secretVector: null,
+    secretWordRank: null,
     top1000Indices: new Set(),
     wordSimilarities: [],
     currentGuess: "",
@@ -439,6 +462,7 @@ function resetUI() {
   progressBar.style.width = "0%";
   loadingStatus.textContent = "Initializing...";
   hintText.textContent = "Enter a word to begin.";
+  hintText.classList.remove("hidden");
   latestGuessInfo.classList.add("hidden");
   guessHistory.innerHTML = "";
   guessInput.value = "";
@@ -516,22 +540,25 @@ function showHint(message, type = "info") {
 guessForm.addEventListener("submit", handleGuess);
 playAgainBtn.addEventListener("click", () => initGame(true));
 restartBtn.addEventListener("click", () => {
+  const newLang = languageSelect.value;
+  const newDifficulty = difficultySelect.value;
+
+  // Check if settings have changed
+  if (
+    newLang !== appState.language ||
+    newDifficulty !== appState.difficulty
+  ) {
+    appState.language = newLang;
+    appState.difficulty = newDifficulty;
+  }
+
   hideSettingsModal();
-  restartGame();
+  restartGame(); // This will start a new game with the updated settings
 });
 settingsBtn.addEventListener("click", showSettingsModal);
 settingsModal
   .querySelector(".modal-backdrop")
   .addEventListener("click", hideSettingsModal);
-languageSelect.addEventListener("change", async (e) => {
-  const newLang = e.target.value;
-  if (newLang !== appState.language) {
-    appState.language = newLang;
-    await clear(); // Clear old game state
-    hideSettingsModal();
-    await initGame(true); // Start a new game in the new language
-  }
-});
 
 document.addEventListener("DOMContentLoaded", () => {
   populateLanguageSelector();
