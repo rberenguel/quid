@@ -35,42 +35,47 @@
       </div>
 
       <div id="game-screen" class="hidden">
-        <header id="game-header">
-          <h2 class="game-title">Quid</h2>
-          <button id="settings-btn" class="icon-btn">
-            <i class="iconoir-menu"></i>
-          </button>
-        </header>
-        <div>
-          <p class="subtitle">
-            <span id="language-flag"></span>The secret word is the
-            <span id="secret-word-rank"></span>th most common
-            <span id="language-name"></span> word.
-          </p>
-
-          <form id="guess-form">
-            <input
-              type="text"
-              id="guess-input"
-              placeholder="Guess..."
-              autocomplete="off"
-            />
-          </form>
-
-          <div id="latest-guess-container" class="info-card">
-            <p id="hint-text" style="color: var(--color-text-muted)">
-              Enter a word to begin.
+        <div id="game-screen-top">
+          <header id="game-header">
+            <h2 class="game-title">Quid</h2>
+            <button id="settings-btn" class="icon-btn">
+              <i class="iconoir-menu"></i>
+            </button>
+          </header>
+          <div>
+            <p class="subtitle">
+              <span id="language-flag"></span>The secret word is the
+              <span class="no-space-container"
+                ><span id="secret-word-rank"></span
+                ><span id="secret-word-rank-ordinal"></span
+              ></span>
+              most common <span id="language-name"></span> word.
             </p>
-            <div id="latest-guess-info" class="hidden">
-              <p id="latest-word"></p>
-              <div>
+
+            <form id="guess-form">
+              <input
+                type="text"
+                id="guess-input"
+                placeholder="Guess..."
+                autocomplete="off"
+              />
+            </form>
+
+            <div id="latest-guess-container" class="info-card">
+              <p id="hint-text" style="color: var(--color-text-muted)">
+                Enter a word to begin.
+              </p>
+              <div id="latest-guess-info" class="hidden">
+                <p id="latest-word"></p>
                 <div>
-                  <p class="label">Similarity</p>
-                  <p class="value" id="latest-similarity"></p>
-                </div>
-                <div>
-                  <p class="label">Rank</p>
-                  <p class="value guess-rank" id="latest-rank"></p>
+                  <div>
+                    <p class="label">Similarity</p>
+                    <p class="value" id="latest-similarity"></p>
+                  </div>
+                  <div>
+                    <p class="label">Rank</p>
+                    <p class="value guess-rank" id="latest-rank"></p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -98,7 +103,7 @@
         <p>
           You found it in
           <span id="win-guesses" style="font-weight: 700; color: white"></span>
-          guesses.
+          guesses<span id="win-hints-text"></span>.
         </p>
         <button id="play-again-btn">Play Again</button>
       </div>
@@ -119,6 +124,10 @@
               Catalan, and <code>ll</code> instead of Catalan's geminate
               <code>l</code>
             </p>
+            <p>
+              You can get as many hints as you want. A hint will be a word that
+              is halfway from your best guess to the target word.
+            </p>
           </div>
           <div class="settings-grid">
             <div id="language-selection">
@@ -135,6 +144,7 @@
             </div>
           </div>
           <div class="modal-actions">
+            <button id="hint-btn" class="modal-btn-secondary">Get Hint</button>
             <button id="restart-btn" class="modal-btn-primary">New Game</button>
           </div>
           <div class="coffee-link-container">

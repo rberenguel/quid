@@ -73,6 +73,9 @@ const appState = {
   isMobile: false,
   language: "ca",
   difficulty: "normal",
+  rankedWords: [],
+  hintsUsed: 0,
+  revealedHints: new Set(),
 };
 
 const loadingScreen = document.getElementById("loading-screen");
@@ -82,7 +85,6 @@ const progressBar = document.getElementById("progress-bar");
 const loadingStatus = document.getElementById("loading-status");
 const guessForm = document.getElementById("guess-form");
 const guessInput = document.getElementById("guess-input");
-const latestGuessContainer = document.getElementById("latest-guess-container");
 const hintText = document.getElementById("hint-text");
 const latestGuessInfo = document.getElementById("latest-guess-info");
 const latestWord = document.getElementById("latest-word");
@@ -90,6 +92,9 @@ const latestSimilarity = document.getElementById("latest-similarity");
 const latestRank = document.getElementById("latest-rank");
 const guessHistory = document.getElementById("guess-history");
 const secretWordRankEl = document.getElementById("secret-word-rank");
+const secretWordRankOrdinalEl = document.getElementById(
+  "secret-word-rank-ordinal",
+);
 const languageNameEl = document.getElementById("language-name");
 const languageFlagEl = document.getElementById("language-flag");
 const winWordEl = document.getElementById("win-word");
@@ -102,8 +107,13 @@ const settingsBtn = document.getElementById("settings-btn");
 const settingsModal = document.getElementById("settings-modal");
 const languageSelect = document.getElementById("language-select");
 const difficultySelect = document.getElementById("difficulty-select");
+const hintBtn = document.getElementById("hint-btn");
+const winHintsText = document.getElementById("win-hints-text");
 
 function showSettingsModal() {
+  const bestGuessRank =
+    appState.guesses.length > 0 ? appState.guesses[0].rank : Infinity;
+  hintBtn.disabled = bestGuessRank <= 2;
   settingsModal.classList.remove("hidden");
 }
 
@@ -131,6 +141,9 @@ async function saveGameState() {
     language: appState.language,
     secretWordRank: appState.secretWordRank,
     difficulty: appState.difficulty,
+    rankedWords: appState.rankedWords,
+    hintsUsed: appState.hintsUsed,
+    revealedHints: Array.from(appState.revealedHints),
   };
   await set("gameState", stateToSave);
 }
@@ -144,11 +157,28 @@ async function loadGameState() {
     appState.language = savedState.language || "ca";
     appState.secretWordRank = savedState.secretWordRank;
     appState.difficulty = savedState.difficulty || "normal";
+    appState.rankedWords = savedState.rankedWords || [];
+    appState.hintsUsed = savedState.hintsUsed || 0;
+    appState.revealedHints = new Set(savedState.revealedHints || []);
     languageSelect.value = appState.language;
     difficultySelect.value = appState.difficulty;
     return true;
   }
   return false;
+}
+
+function ordinal(rank) {
+  const text = `${rank}`;
+  if (text.endsWith(1)) {
+    return "st";
+  }
+  if (text.endsWith(2)) {
+    return "nd";
+  }
+  if (text.endsWith(3)) {
+    return "rd";
+  }
+  return "th";
 }
 
 async function restartGame() {
@@ -281,6 +311,7 @@ async function initGame(forceNew = false) {
         }
       });
       secretWordRankEl.textContent = appState.secretWordRank;
+      secretWordRankOrdinalEl.textContent = ordinal(appState.secretWordRank);
       if (appState.guesses.length > 0) {
         updateLatestGuess(appState.guesses[0]);
       }
@@ -338,6 +369,9 @@ async function initGame(forceNew = false) {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
   allSimilarities.sort((a, b) => b.similarity - a.similarity);
+  appState.rankedWords = allSimilarities.map(
+    (item) => appState.words[item.index],
+  );
   appState.wordSimilarities = new Array(appState.words.length);
   allSimilarities.forEach((item, rank) => {
     appState.wordSimilarities[item.index] = {
@@ -351,6 +385,7 @@ async function initGame(forceNew = false) {
 
   progressBar.style.width = `100%`;
   secretWordRankEl.textContent = appState.secretWordRank;
+  secretWordRankOrdinalEl.textContent = ordinal(appState.secretWordRank);
   await saveGameState();
 
   appState.isLoading = false;
@@ -439,6 +474,53 @@ async function loadData(language) {
     console.error(error);
   }
 }
+function processGuess(word, isHint = false) {
+  const wordIndex = appState.wordMap.get(word);
+  const { similarity, rank } = appState.wordSimilarities[wordIndex];
+  const guessData = { word, similarity, rank, isHint };
+
+  appState.guesses.push(guessData);
+  appState.guesses.sort((a, b) => b.similarity - a.similarity);
+
+  updateLatestGuess(guessData);
+  renderGuessHistory();
+  saveGameState();
+
+  if (word === appState.secretWord) {
+    handleWin();
+  }
+}
+
+// Add this new function
+function handleHintRequest() {
+  triggerHaptic();
+  if (appState.guesses.length === 0) return;
+
+  const bestGuessRank = appState.guesses[0].rank;
+  if (bestGuessRank <= 2) return;
+
+  let hintWord = null;
+  // Start searching halfway between the best guess and the answer
+  for (let r = Math.floor(bestGuessRank / 2); r > 1; r--) {
+    const potentialHint = appState.rankedWords[r - 1];
+    const isGuessed = appState.guesses.some((g) => g.word === potentialHint);
+    if (!isGuessed) {
+      hintWord = potentialHint;
+      break;
+    }
+  }
+
+  if (hintWord) {
+    appState.hintsUsed++;
+    appState.revealedHints.add(hintWord);
+    processGuess(hintWord, true);
+    hideSettingsModal();
+  } else {
+    alert("No more hints available between your best guess and the answer!");
+  }
+}
+
+// Replace your existing handleGuess function
 function handleGuess(e) {
   e.preventDefault();
   const guessedWord = appState.currentGuess.trim().toLowerCase();
@@ -458,24 +540,23 @@ function handleGuess(e) {
     showHint("You already guessed that word.", "info");
     return;
   }
-  const wordIndex = appState.wordMap.get(word);
-  const { similarity, rank } = appState.wordSimilarities[wordIndex];
-  const guessData = { word, similarity, rank };
-  appState.guesses.push(guessData);
-  appState.guesses.sort((a, b) => b.similarity - a.similarity);
-  updateLatestGuess(guessData);
-  renderGuessHistory();
-  saveGameState();
-  if (word === appState.secretWord) {
-    handleWin();
-  }
+  processGuess(word, false);
 }
+
 function handleWin() {
   gameScreen.classList.add("hidden");
   winScreen.classList.remove("hidden");
   winWordEl.textContent = appState.secretWord;
   winGuessesEl.textContent = appState.guesses.length;
+
+  if (appState.hintsUsed > 0) {
+    const hintPlural = appState.hintsUsed > 1 ? "s" : "";
+    winHintsText.textContent = ` and ${appState.hintsUsed} hint${hintPlural}`;
+  } else {
+    winHintsText.textContent = "";
+  }
 }
+
 function resetUI() {
   Object.assign(appState, {
     guesses: [],
@@ -485,6 +566,9 @@ function resetUI() {
     top1000Indices: new Set(),
     wordSimilarities: [],
     currentGuess: "",
+    rankedWords: [],
+    hintsUsed: 0,
+    revealedHints: new Set(),
   });
   updateGuessDisplay();
   loadingScreen.classList.remove("hidden");
@@ -495,43 +579,59 @@ function resetUI() {
   hintText.textContent = "Enter a word to begin.";
   hintText.classList.remove("hidden");
   latestGuessInfo.classList.add("hidden");
-  latestWord.textContent = ""; // Clear latest word
-  latestSimilarity.textContent = ""; // Clear latest similarity
-  latestRank.textContent = ""; // Clear latest rank
+  latestWord.textContent = "";
+  latestSimilarity.textContent = "";
+  latestRank.textContent = "";
   guessHistory.innerHTML = "";
   guessInput.value = "";
+  winHintsText.textContent = "";
 }
+
 function updateLatestGuess({ word, similarity, rank }) {
   hintText.classList.add("hidden");
   latestGuessInfo.classList.remove("hidden");
   latestWord.textContent = word;
   latestSimilarity.textContent = similarity.toFixed(4);
   latestRank.textContent = rank;
+
   const color = getHotnessColor(similarity);
   latestSimilarity.style.color = color;
   latestRank.style.color = color;
 
-  // Add silver medal emoji if it's the best guess and there are more than 3 guesses
-  if (appState.guesses.length > 3 && appState.guesses[0].word === word) {
+  const isBestGuess =
+    appState.guesses.length > 3 && appState.guesses[0].word === word;
+  const isWinningGuess = word === appState.secretWord;
+
+  if (isWinningGuess) {
+    latestRank.textContent += " 🥇";
+  } else if (isBestGuess) {
     latestRank.textContent += " 🥈";
   }
 }
+
 function renderGuessHistory() {
   guessHistory.innerHTML = "";
   appState.guesses.forEach((guess) => {
     const li = document.createElement("li");
     li.className = "guess-item";
+    if (guess.isHint) {
+      li.classList.add("hint-item");
+    }
+
     const color = getHotnessColor(guess.similarity);
     const wordSpan = document.createElement("span");
     wordSpan.textContent = guess.word;
+
     const similaritySpan = document.createElement("span");
     similaritySpan.className = "font-mono text-right";
     similaritySpan.textContent = (guess.similarity * 100).toFixed(2);
     similaritySpan.style.color = color;
+
     const rankSpan = document.createElement("span");
     rankSpan.className = "guess-rank text-right";
     rankSpan.textContent = guess.rank;
     rankSpan.style.color = color;
+
     const wordIndex = appState.wordMap.get(guess.word);
     if (
       appState.top1000Indices.has(wordIndex) &&
@@ -545,6 +645,7 @@ function renderGuessHistory() {
     guessHistory.appendChild(li);
   });
 }
+
 function getHotnessColor(similarity) {
   if (similarity < 0.1) return "#60a5fa"; // blue-400
   if (similarity < 0.2) return "#38bdf8"; // lightBlue-400
@@ -600,3 +701,4 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("keydown", handlePhysicalKeyDown);
 virtualKeyboard.addEventListener("click", handleVirtualKeyboardClick);
 window.addEventListener("resize", setupInputMode);
+hintBtn.addEventListener("click", handleHintRequest);
