@@ -71,7 +71,7 @@ const appState = {
   isLoading: true,
   currentGuess: "",
   isMobile: false,
-  language: "ca",
+  language: "en",
   difficulty: "normal",
   rankedWords: [],
   hintsUsed: 0,
