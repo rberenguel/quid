@@ -28,11 +28,16 @@
       </div>
 
       <div id="game-screen" class="hidden">
-        <div id="game-screen-top">
-          <h2>Quid</h2>
+        <header id="game-header">
+          <h2 class="game-title">Quid</h2>
+          <button id="settings-btn" class="icon-btn">
+            <i class="iconoir-settings"></i>
+          </button>
+        </header>
+        <div>
           <p class="subtitle">
             The secret word is the <span id="secret-word-rank"></span>th most
-            common.
+            common <span id="language-name"></span> word.
           </p>
 
           <form id="guess-form">
@@ -42,9 +47,6 @@
               placeholder="Guess..."
               autocomplete="off"
             />
-            <button type="button" id="restart-btn" class="icon-btn">
-              <i class="iconoir-refresh-double"></i>
-            </button>
           </form>
 
           <div id="latest-guess-container" class="info-card">
@@ -93,17 +95,17 @@
         <button id="play-again-btn">Play Again</button>
       </div>
 
-      <div id="restart-modal" class="hidden">
+      <div id="settings-modal" class="hidden">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
-          <p>Are you sure you want to restart?</p>
-          <p class="modal-subtitle">You will lose all your current progress.</p>
+          <h3>Settings</h3>
+          <div id="language-selection">
+            <label for="language-select">Game Language</label>
+            <select id="language-select"></select>
+          </div>
           <div class="modal-actions">
-            <button id="modal-cancel-btn" class="modal-btn-secondary">
-              Cancel
-            </button>
-            <button id="modal-confirm-btn" class="modal-btn-primary">
-              Restart
+            <button id="restart-btn" class="modal-btn-primary">
+              New Game
             </button>
           </div>
         </div>

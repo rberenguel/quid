@@ -1,7 +1,45 @@
 import { get, set, clear } from "./idb-keyval.js";
 import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
-const GLOVE_FILE_PATH = "./models/cc.ca.50.txt.quantized.json"; //"./glove.6B.50d.txt.quantized.json";
+
 const TOP_N_FOR_SECRET_WORD = 20000;
+
+const LANGUAGES = {
+  ca: {
+    name: "Catalan",
+    model: "./models/cc.ca.50.txt.quantized.json",
+    replacements: [[/l·l/g, "ll"]],
+  },
+  de: {
+    name: "German",
+    model: "./models/cc.de.50.txt.quantized.json",
+    replacements: [
+      [/ä/g, "a"],
+      [/ö/g, "o"],
+      [/ü/g, "u"],
+      [/ß/g, "ss"],
+    ],
+  },
+  en: {
+    name: "English",
+    model: "./models/cc.en.50.txt.quantized.json",
+    replacements: [],
+  },
+  es: {
+    name: "Spanish",
+    model: "./models/cc.es.50.txt.quantized.json",
+    replacements: [[/ñ/g, "n"]],
+  },
+  fr: {
+    name: "French",
+    model: "./models/cc.fr.50.txt.quantized.json",
+    replacements: [[/ç/g, "c"]],
+  },
+  it: {
+    name: "Italian",
+    model: "./models/cc.it.50.txt.quantized.json",
+    replacements: [],
+  },
+};
 
 const appState = {
   words: [],
@@ -10,6 +48,7 @@ const appState = {
   normalizedWordMap: new Map(),
   secretWord: null,
   secretVector: null,
+  secretWordRank: null,
   minVal: 0,
   maxVal: 0,
   dimension: 0,
@@ -19,6 +58,7 @@ const appState = {
   isLoading: true,
   currentGuess: "",
   isMobile: false,
+  language: "ca",
 };
 
 const loadingScreen = document.getElementById("loading-screen");
@@ -36,21 +76,44 @@ const latestSimilarity = document.getElementById("latest-similarity");
 const latestRank = document.getElementById("latest-rank");
 const guessHistory = document.getElementById("guess-history");
 const secretWordRankEl = document.getElementById("secret-word-rank");
+const languageNameEl = document.getElementById("language-name");
 const winWordEl = document.getElementById("win-word");
 const winGuessesEl = document.getElementById("win-guesses");
 const playAgainBtn = document.getElementById("play-again-btn");
 const mainContent = document.getElementById("main-content");
 const restartBtn = document.getElementById("restart-btn");
 const virtualKeyboard = document.getElementById("virtual-keyboard");
-const restartModal = document.getElementById("restart-modal");
-const modalConfirmBtn = document.getElementById("modal-confirm-btn");
-const modalCancelBtn = document.getElementById("modal-cancel-btn");
+const settingsBtn = document.getElementById("settings-btn");
+const settingsModal = document.getElementById("settings-modal");
+const languageSelect = document.getElementById("language-select");
+
+function showSettingsModal() {
+  settingsModal.classList.remove("hidden");
+}
+
+function hideSettingsModal() {
+  settingsModal.classList.add("hidden");
+}
+
+function populateLanguageSelector() {
+  for (const [langCode, langData] of Object.entries(LANGUAGES)) {
+    const option = document.createElement("option");
+    option.value = langCode;
+    option.textContent = langData.name;
+    if (langCode === appState.language) {
+      option.selected = true;
+    }
+    languageSelect.appendChild(option);
+  }
+}
 
 async function saveGameState() {
   const stateToSave = {
     secretWord: appState.secretWord,
     guesses: appState.guesses,
     wordSimilarities: appState.wordSimilarities,
+    language: appState.language,
+    secretWordRank: appState.secretWordRank,
   };
   await set("gameState", stateToSave);
 }
@@ -61,6 +124,9 @@ async function loadGameState() {
     appState.secretWord = savedState.secretWord;
     appState.guesses = savedState.guesses;
     appState.wordSimilarities = savedState.wordSimilarities;
+    appState.language = savedState.language || "ca";
+    appState.secretWordRank = savedState.secretWordRank;
+    languageSelect.value = appState.language;
     return true;
   }
   return false;
@@ -145,15 +211,6 @@ function setupInputMode() {
   }
 }
 
-function showRestartModal() {
-  triggerHapticError();
-  restartModal.classList.remove("hidden");
-}
-
-function hideRestartModal() {
-  restartModal.classList.add("hidden");
-}
-
 const dequantizeValue = (qVal) => {
   const { minVal, maxVal } = appState;
   const scaled = (qVal + 127) / 254.0;
@@ -177,7 +234,17 @@ async function initGame(forceNew = false) {
   resetUI();
   setupInputMode();
   mainContent.classList.add("md:grid-cols-1");
-  await loadData();
+
+  // Determine language: saved state > default
+  const savedState = await get("gameState");
+  if (!forceNew && savedState && savedState.language) {
+    appState.language = savedState.language;
+  }
+  languageSelect.value = appState.language;
+  languageNameEl.textContent = LANGUAGES[appState.language].name.toLowerCase();
+
+  await loadData(appState.language);
+
   if (!forceNew && (await loadGameState())) {
     try {
       const secretWordIndex = appState.wordMap.get(appState.secretWord);
@@ -189,8 +256,7 @@ async function initGame(forceNew = false) {
           appState.top1000Indices.add(index);
         }
       });
-      secretWordRankEl.textContent =
-        appState.wordSimilarities[secretWordIndex].rank;
+      secretWordRankEl.textContent = appState.secretWordRank;
       if (appState.guesses.length > 0) {
         updateLatestGuess(appState.guesses[0]);
       }
@@ -201,13 +267,17 @@ async function initGame(forceNew = false) {
       if (!appState.isMobile) guessInput.focus();
       return;
     } catch (err) {
-      console.warn(err);
+      console.warn("Could not load saved game, starting a new one.", err);
+      await clear(); // Clear corrupted saved state
     }
   }
+
+  // This part runs for a new game (or if loading failed)
   const CHUNK_SIZE = 1000;
   loadingStatus.textContent = "Dequantizing word vectors...";
   progressBar.style.width = `0%`;
   await new Promise((resolve) => setTimeout(resolve, 10));
+
   const dequantizedVectors = [];
   for (let i = 0; i < appState.vectors.length; i += CHUNK_SIZE) {
     const chunk = appState.vectors.slice(i, i + CHUNK_SIZE);
@@ -215,12 +285,16 @@ async function initGame(forceNew = false) {
     progressBar.style.width = `${(i / appState.vectors.length) * 50}%`;
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
+
   loadingStatus.textContent = "Choosing a secret word...";
   const secretWordIndex = Math.floor(Math.random() * TOP_N_FOR_SECRET_WORD);
   appState.secretWord = appState.words[secretWordIndex];
   appState.secretVector = dequantizedVectors[secretWordIndex];
+  appState.secretWordRank = secretWordIndex + 1;
+
   loadingStatus.textContent = "Calculating similarities...";
   await new Promise((resolve) => setTimeout(resolve, 10));
+
   const allSimilarities = [];
   for (let i = 0; i < dequantizedVectors.length; i += CHUNK_SIZE) {
     const chunk = dequantizedVectors.slice(i, i + CHUNK_SIZE);
@@ -233,9 +307,11 @@ async function initGame(forceNew = false) {
     progressBar.style.width = `${50 + (i / dequantizedVectors.length) * 45}%`;
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
+
   loadingStatus.textContent = "Finalizing...";
   progressBar.style.width = `95%`;
   await new Promise((resolve) => setTimeout(resolve, 10));
+
   allSimilarities.sort((a, b) => b.similarity - a.similarity);
   appState.wordSimilarities = new Array(appState.words.length);
   allSimilarities.forEach((item, rank) => {
@@ -247,20 +323,30 @@ async function initGame(forceNew = false) {
       appState.top1000Indices.add(item.index);
     }
   });
+
   progressBar.style.width = `100%`;
-  secretWordRankEl.textContent = secretWordIndex + 1; // Use frequency rank
+  secretWordRankEl.textContent = appState.secretWordRank;
   await saveGameState();
+
   appState.isLoading = false;
   loadingScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
   if (!appState.isMobile) guessInput.focus();
 }
-const normalizeWord = (word) =>
-  word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const normalizeWord = (word) => {
+  let normalized = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const langReplacements = LANGUAGES[appState.language].replacements;
+  if (langReplacements) {
+    for (const [regex, replacement] of langReplacements) {
+      normalized = normalized.replace(regex, replacement);
+    }
+  }
+  return normalized;
+};
 
-async function loadData() {
+async function loadData(language) {
   try {
-    const response = await fetch(GLOVE_FILE_PATH);
+    const response = await fetch(LANGUAGES[language].model);
     const reader = response.body.getReader();
     const contentLength = +response.headers.get("Content-Length");
     let receivedLength = 0;
@@ -287,6 +373,9 @@ async function loadData() {
     appState.minVal = data.min;
     appState.maxVal = data.max;
     appState.dimension = data.dimension;
+
+    appState.wordMap.clear();
+    appState.normalizedWordMap.clear();
     appState.words.forEach((word, index) => {
       appState.wordMap.set(word, index);
       appState.normalizedWordMap.set(normalizeWord(word), word);
@@ -426,17 +515,26 @@ function showHint(message, type = "info") {
 
 guessForm.addEventListener("submit", handleGuess);
 playAgainBtn.addEventListener("click", () => initGame(true));
-restartBtn.addEventListener("click", showRestartModal);
-modalConfirmBtn.addEventListener("click", () => {
-  hideRestartModal();
+restartBtn.addEventListener("click", () => {
+  hideSettingsModal();
   restartGame();
 });
-modalCancelBtn.addEventListener("click", hideRestartModal);
-restartModal
+settingsBtn.addEventListener("click", showSettingsModal);
+settingsModal
   .querySelector(".modal-backdrop")
-  .addEventListener("click", hideRestartModal);
+  .addEventListener("click", hideSettingsModal);
+languageSelect.addEventListener("change", async (e) => {
+  const newLang = e.target.value;
+  if (newLang !== appState.language) {
+    appState.language = newLang;
+    await clear(); // Clear old game state
+    hideSettingsModal();
+    await initGame(true); // Start a new game in the new language
+  }
+});
 
 document.addEventListener("DOMContentLoaded", () => {
+  populateLanguageSelector();
   createKeyboard();
   initGame();
 });

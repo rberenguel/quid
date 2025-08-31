@@ -63,12 +63,19 @@ body {
   border-radius: 9999px;
   transition: width 0.3s ease-in-out;
 }
-#game-screen h2 {
+#game-screen h2.game-title {
   font-size: 1.25rem;
   font-weight: 700;
   text-align: center;
   color: var(--color-primary);
+  margin: 0;
+}
+#game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.2rem;
+  padding: 0.5rem 0;
 }
 #game-screen .subtitle {
   text-align: center;
@@ -315,7 +322,7 @@ body {
 }
 
 /* Modal Styles */
-#restart-modal {
+#settings-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -325,7 +332,7 @@ body {
   align-items: center;
   justify-content: center;
 }
-#restart-modal:not(.hidden) {
+#settings-modal:not(.hidden) {
   display: flex;
 }
 .modal-backdrop {
@@ -344,6 +351,29 @@ body {
   text-align: center;
   width: 90%;
   max-width: 400px;
+}
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+}
+#language-selection {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+#language-selection label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-muted);
+}
+#language-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  font-size: 1rem;
 }
 .modal-content p {
   margin: 0 0 0.5rem 0;
@@ -369,11 +399,11 @@ body {
   transition: background-color 0.2s;
 }
 .modal-btn-primary {
-  background-color: #ef4444; /* red-500 */
+  background-color: var(--color-primary);
   color: white;
 }
 .modal-btn-primary:hover {
-  background-color: #dc2626; /* red-600 */
+  background-color: var(--color-primary-hover);
 }
 .modal-btn-secondary {
   background-color: var(--color-border);
