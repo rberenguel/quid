@@ -390,8 +390,36 @@ async function loadData(language) {
     }
     const result = new TextDecoder("utf-8").decode(chunksAll);
     const data = JSON.parse(result);
-    appState.words = data.words;
-    appState.vectors = data.vectors;
+
+    // Process words: lowercase, average vectors for duplicates
+    const wordVectorData = new Map();
+    for (let i = 0; i < data.words.length; i++) {
+      const word = data.words[i].toLowerCase();
+      const vector = data.vectors[i];
+      if (wordVectorData.has(word)) {
+        const existing = wordVectorData.get(word);
+        for (let j = 0; j < vector.length; j++) {
+          existing.vectorSum[j] += vector[j];
+        }
+        existing.count++;
+      } else {
+        wordVectorData.set(word, {
+          vectorSum: [...vector], // Create a new array from the vector
+          count: 1,
+        });
+      }
+    }
+
+    const newWords = [];
+    const newVectors = [];
+    for (const [word, { vectorSum, count }] of wordVectorData.entries()) {
+      const avgVector = vectorSum.map((v) => v / count);
+      newWords.push(word);
+      newVectors.push(avgVector);
+    }
+
+    appState.words = newWords;
+    appState.vectors = newVectors;
     appState.minVal = data.min;
     appState.maxVal = data.max;
     appState.dimension = data.dimension;
