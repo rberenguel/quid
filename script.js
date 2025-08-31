@@ -1,7 +1,6 @@
 import { get, set, clear } from "./idb-keyval.js";
 import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
 
-const TOP_N_FOR_SECRET_WORD = 20000;
 const DIFFICULTY_LEVELS = {
   easy: 1000,
   medium: 10000,
@@ -11,9 +10,12 @@ const DIFFICULTY_LEVELS = {
 const LANGUAGES = {
   ca: {
     name: "Catalan",
-    flag: "🇪🇸", // Note: No official Catalan flag emoji
+    flag: "🇦🇩",
     model: "./models/cc.ca.50.txt.quantized.json",
-    replacements: [[/l·l/g, "ll"]],
+    replacements: [
+      [/l·l/g, "ll"],
+      [/ç/g, "c"],
+    ],
   },
   de: {
     name: "German",

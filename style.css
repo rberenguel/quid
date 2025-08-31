@@ -160,7 +160,6 @@ body {
   padding: 0 1rem;
 }
 #guess-history {
-  height: 20rem; /* h-80 */
   overflow-y: auto;
   list-style: none;
   padding: 0;
@@ -168,6 +167,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  max-height: 8lh;
 }
 #latest-guess-container.info-card {
   padding: 0.75rem 1rem;
@@ -377,9 +377,6 @@ body {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   margin-bottom: 1.5rem;
-  text-align: left;
-  border-left: 2px solid var(--color-border);
-  padding-left: 1rem;
 }
 .settings-grid {
   display: grid;
@@ -514,6 +511,7 @@ body {
   #guess-history {
     flex-grow: 1;
     overflow-y: auto;
+    max-height: 8lh;
   }
 
   #guess-input {

@@ -33,7 +33,7 @@ The objective is to find the secret word in as few guesses as possible.
 
 ## Under the Hood
 
-Quid's logic is powered by **GloVe (Global Vectors for Word Representation)**, a popular set of word embeddings.
+Quid's logic is powered by ~**GloVe (Global Vectors for Word Representation)**~ **fastText**, a popular set of multi-language word embeddings.
 
 - **Word Vectors**: Each word in the game's dictionary is represented as a 50-dimensional vector. Words with similar meanings are located closer to each other in this vector space.
 - **Cosine Similarity**: The "closeness" between your guess and the secret word is calculated using the [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity) between their respective vectors. This measures the cosine of the angle between them, providing a normalized score of their semantic relationship.

@@ -23,6 +23,7 @@ const CACHE_FILES = [
   "./models/cc.en.50.txt.quantized.json",
   "./models/cc.es.50.txt.quantized.json",
   "./models/cc.fr.50.txt.quantized.json",
+  "./models/cc.it.50.txt.quantized.json",
 ];
 
 // Install event: opens a cache and adds the core files to it.
