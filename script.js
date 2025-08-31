@@ -255,7 +255,7 @@ async function initGame(forceNew = false) {
   // Determine language and difficulty from saved state or defaults
   const savedState = await get("gameState");
   if (!forceNew && savedState) {
-    appState.language = savedState.language || "ca";
+    appState.language = savedState.language || "en";
     appState.difficulty = savedState.difficulty || "normal";
   }
   languageSelect.value = appState.language;
@@ -268,7 +268,8 @@ async function initGame(forceNew = false) {
   if (!forceNew && (await loadGameState())) {
     try {
       const secretWordIndex = appState.wordMap.get(appState.secretWord);
-      if (secretWordIndex === undefined) throw new Error("Secret word not in map");
+      if (secretWordIndex === undefined)
+        throw new Error("Secret word not in map");
       appState.secretVector = dequantizeVector(
         appState.vectors[secretWordIndex],
       );
@@ -492,6 +493,9 @@ function resetUI() {
   hintText.textContent = "Enter a word to begin.";
   hintText.classList.remove("hidden");
   latestGuessInfo.classList.add("hidden");
+  latestWord.textContent = ""; // Clear latest word
+  latestSimilarity.textContent = ""; // Clear latest similarity
+  latestRank.textContent = ""; // Clear latest rank
   guessHistory.innerHTML = "";
   guessInput.value = "";
 }
@@ -504,9 +508,10 @@ function updateLatestGuess({ word, similarity, rank }) {
   const color = getHotnessColor(similarity);
   latestSimilarity.style.color = color;
   latestRank.style.color = color;
-  const wordIndex = appState.wordMap.get(word);
-  if (appState.top1000Indices.has(wordIndex) && word !== appState.secretWord) {
-    latestRank.textContent += " (Top 1000!)";
+
+  // Add silver medal emoji if it's the best guess and there are more than 3 guesses
+  if (appState.guesses.length > 3 && appState.guesses[0].word === word) {
+    latestRank.textContent += " 🥈";
   }
 }
 function renderGuessHistory() {
@@ -572,10 +577,7 @@ restartBtn.addEventListener("click", () => {
   const newDifficulty = difficultySelect.value;
 
   // Check if settings have changed
-  if (
-    newLang !== appState.language ||
-    newDifficulty !== appState.difficulty
-  ) {
+  if (newLang !== appState.language || newDifficulty !== appState.difficulty) {
     appState.language = newLang;
     appState.difficulty = newDifficulty;
   }

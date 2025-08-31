@@ -1,4 +1,4 @@
-const CACHE_NAME = "quid-cache-v0.2.0";
+const CACHE_NAME = "quid-cache-v0.3.0";
 const CACHE_FILES = [
   "./",
   "./fonts/InterDisplay-Bold.woff2",
@@ -18,7 +18,11 @@ const CACHE_FILES = [
   "./media/icon.png",
   "./media/icon512.png",
   "./script.js",
-  "./glove.6B.50d.txt.quantized.json",
+  "./models/cc.ca.50.txt.quantized.json",
+  "./models/cc.de.50.txt.quantized.json",
+  "./models/cc.en.50.txt.quantized.json",
+  "./models/cc.es.50.txt.quantized.json",
+  "./models/cc.fr.50.txt.quantized.json",
 ];
 
 // Install event: opens a cache and adds the core files to it.
