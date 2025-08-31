@@ -1,12 +1,13 @@
 import { get, set, clear } from "./idb-keyval.js";
 import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
-const GLOVE_FILE_PATH = "./models/cc.ca.50.txt.quantized.json" //"./glove.6B.50d.txt.quantized.json";
+const GLOVE_FILE_PATH = "./models/cc.ca.50.txt.quantized.json"; //"./glove.6B.50d.txt.quantized.json";
 const TOP_N_FOR_SECRET_WORD = 20000;
 
 const appState = {
   words: [],
   vectors: [],
   wordMap: new Map(),
+  normalizedWordMap: new Map(),
   secretWord: null,
   secretVector: null,
   minVal: 0,
@@ -179,26 +180,28 @@ async function initGame(forceNew = false) {
   await loadData();
   if (!forceNew && (await loadGameState())) {
     try {
-const secretWordIndex = appState.wordMap.get(appState.secretWord);
-    appState.secretVector = dequantizeVector(appState.vectors[secretWordIndex]);
-    appState.wordSimilarities.forEach((item, index) => {
-      if (item.rank <= 1000) {
-        appState.top1000Indices.add(index);
+      const secretWordIndex = appState.wordMap.get(appState.secretWord);
+      appState.secretVector = dequantizeVector(
+        appState.vectors[secretWordIndex],
+      );
+      appState.wordSimilarities.forEach((item, index) => {
+        if (item.rank <= 1000) {
+          appState.top1000Indices.add(index);
+        }
+      });
+      secretWordRankEl.textContent =
+        appState.wordSimilarities[secretWordIndex].rank;
+      if (appState.guesses.length > 0) {
+        updateLatestGuess(appState.guesses[0]);
       }
-    });
-    secretWordRankEl.textContent =
-      appState.wordSimilarities[secretWordIndex].rank;
-    if (appState.guesses.length > 0) {
-      updateLatestGuess(appState.guesses[0]);
-    }
-    renderGuessHistory();
-    appState.isLoading = false;
-    loadingScreen.classList.add("hidden");
-    gameScreen.classList.remove("hidden");
-    if (!appState.isMobile) guessInput.focus();
-    return;
-    } catch(err){
-      console.warn(err)
+      renderGuessHistory();
+      appState.isLoading = false;
+      loadingScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      if (!appState.isMobile) guessInput.focus();
+      return;
+    } catch (err) {
+      console.warn(err);
     }
   }
   const CHUNK_SIZE = 1000;
@@ -252,6 +255,9 @@ const secretWordIndex = appState.wordMap.get(appState.secretWord);
   gameScreen.classList.remove("hidden");
   if (!appState.isMobile) guessInput.focus();
 }
+const normalizeWord = (word) =>
+  word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 async function loadData() {
   try {
     const response = await fetch(GLOVE_FILE_PATH);
@@ -283,6 +289,7 @@ async function loadData() {
     appState.dimension = data.dimension;
     appState.words.forEach((word, index) => {
       appState.wordMap.set(word, index);
+      appState.normalizedWordMap.set(normalizeWord(word), word);
     });
   } catch (error) {
     loadingStatus.textContent =
@@ -292,14 +299,19 @@ async function loadData() {
 }
 function handleGuess(e) {
   e.preventDefault();
-  const word = appState.currentGuess.trim().toLowerCase();
+  const guessedWord = appState.currentGuess.trim().toLowerCase();
   appState.currentGuess = "";
   updateGuessDisplay();
-  if (!word || appState.isLoading) return;
-  if (!appState.wordMap.has(word)) {
+  if (!guessedWord || appState.isLoading) return;
+
+  const normalizedGuess = normalizeWord(guessedWord);
+  if (!appState.normalizedWordMap.has(normalizedGuess)) {
     showHint("Word not in dictionary.", "error");
     return;
   }
+
+  const word = appState.normalizedWordMap.get(normalizedGuess);
+
   if (appState.guesses.some((g) => g.word === word)) {
     showHint("You already guessed that word.", "info");
     return;
