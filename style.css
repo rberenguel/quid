@@ -327,6 +327,8 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.1s ease-in-out;
+  padding-left: 0;
+  padding-right: 0;
 }
 .key:active {
   background-color: var(--color-border);
