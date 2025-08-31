@@ -157,8 +157,8 @@ async function restartGame() {
 }
 
 const KEYBOARD_LAYOUT = [
-  "q w e r t y u i o p backspace",
-  "a s d f g h j k l",
+  "q w e r t y u i o p",
+  "a s d f g h j k l backspace",
   "z x c v b n m enter",
 ];
 function createKeyboard() {
