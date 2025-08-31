@@ -1,4 +1,4 @@
-const CACHE_NAME = "quid-cache-v0.3.2";
+const CACHE_NAME = "quid-cache-v0.3.3";
 const CACHE_FILES = [
   "./",
   "./fonts/InterDisplay-Bold.woff2",

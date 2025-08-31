@@ -545,7 +545,8 @@ body {
   #guess-history {
     flex-grow: 1;
     overflow-y: auto;
-    max-height: none;
+    max-height: unset;
+    height: 0;
   }
 
   #guess-input {
