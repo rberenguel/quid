@@ -1,6 +1,6 @@
 import { get, set, clear } from "./idb-keyval.js";
 import { initHaptic, triggerHaptic, triggerHapticError } from "./haptic.js";
-const GLOVE_FILE_PATH = "./glove.6B.50d.txt.quantized.json";
+const GLOVE_FILE_PATH = "./models/cc.ca.50.txt.quantized.json" //"./glove.6B.50d.txt.quantized.json";
 const TOP_N_FOR_SECRET_WORD = 20000;
 
 const appState = {
@@ -178,7 +178,8 @@ async function initGame(forceNew = false) {
   mainContent.classList.add("md:grid-cols-1");
   await loadData();
   if (!forceNew && (await loadGameState())) {
-    const secretWordIndex = appState.wordMap.get(appState.secretWord);
+    try {
+const secretWordIndex = appState.wordMap.get(appState.secretWord);
     appState.secretVector = dequantizeVector(appState.vectors[secretWordIndex]);
     appState.wordSimilarities.forEach((item, index) => {
       if (item.rank <= 1000) {
@@ -196,6 +197,9 @@ async function initGame(forceNew = false) {
     gameScreen.classList.remove("hidden");
     if (!appState.isMobile) guessInput.focus();
     return;
+    } catch(err){
+      console.warn(err)
+    }
   }
   const CHUNK_SIZE = 1000;
   loadingStatus.textContent = "Dequantizing word vectors...";
