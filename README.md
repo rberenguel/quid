@@ -47,5 +47,5 @@ Quid's logic is powered by ~**GloVe (Global Vectors for Word Representation)**~ 
 
 ## Credits
 
-- **Word Vectors**: Based on the [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/) project by the Stanford NLP Group.
+- **Word Vectors**: ~Based on the [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/) project by the Stanford NLP Group.~ Word embeddings are from [fastText](https://fasttext.cc/), developed by Facebook AI Research. _Paper: P. Bojanowski et al., "[Enriching Word Vectors with Subword Information](https://aclanthology.org/Q17-1010/)" (2017)._
 - **Development**: Initial concept and code structure developed with assistance from Google's Gemini.
